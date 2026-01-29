@@ -1,0 +1,142 @@
+// src/modules/auth/auth.service.js
+const ApiError = require("../../utils/ApiError");
+const User = require("../../models/user.model");
+const generateToken = require("../../utils/generateToken");
+
+/**
+ * Helper to format user object returned to clients
+ * (keeps sensitive fields out)
+ */
+function formatUser(user) {
+  return {
+    id: user._id,
+    username: user.username,
+    email: user.email,
+    avatar: user.avatar,
+    role: user.role,
+  };
+}
+
+/**
+ * Register a new user
+ * @param {Object} param
+ * @param {string} param0.username
+ * @param {string} param0.email
+ * @param {string} param0.password
+ */
+async function registerUser({ username, email, password }, file) {
+  // basic input validation (controller/validator should normally handle this)
+  if (!username || !email || !password) {
+    throw new ApiError("username, email and password are required", 400);
+  }
+
+  // check existing user (by email or username)
+  const existing = await User.findOne({ $or: [{ email }, { username }] });
+  if (existing) {
+    throw new ApiError("User already exists with this email or username", 400);
+  }
+
+  const avatarPath = file ? file.path : "";
+
+  // create new user
+  const user = await User.create({
+    username,
+    email,
+    password,
+    avatar: avatarPath,
+  });
+
+  // create JWT
+  const token = generateToken(user._id);
+
+  return {
+    user: formatUser(user),
+    token,
+  };
+}
+
+/**
+ * Login user by email or username
+ * @param {Object} param0
+ * @param {string} param0.login  // email or username
+ * @param {string} param0.password
+ */
+async function loginUser({ login, password }) {
+  if (!login || !password) {
+    throw new ApiError("login and password are required", 400);
+  }
+
+  // fetch user including password for comparison
+  const user = await User.findOne({
+    $or: [{ email: login }, { username: login }],
+  }).select("+password");
+
+
+  if (!user) {
+    throw new ApiError("Invalid credentials", 401);
+  }
+
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    // optional: implement login attempt tracking / lockout here
+    throw new ApiError("Invalid credentials", 401);
+  }
+
+  const token = generateToken(user._id);
+
+  return {
+    user: formatUser(user),
+    token,
+  };
+}
+
+/**
+ * Get user by id (for /me)
+ * @param {string} userId
+ */
+async function getUserById(userId) {
+  if (!userId) throw new ApiError("user id is required", 400);
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError("User not found", 404);
+
+  return { user: formatUser(user) };
+}
+
+/**
+ * Update user profile details and avatar
+ * @param {string} userId
+ * @param {Object} updateData
+ * @param {Object} file // Multer file object
+ */
+async function updateUser(userId, updateData, file) {
+  // 1. Safety: Never allow password updates through this general profile route
+  delete updateData.password;
+  delete updateData.email; // Professionally, email changes often require re-verification
+
+  // 2. If a new file is uploaded, add its path to the update object
+  if (file) {
+    updateData.avatar = file.path;
+  }
+
+  // 3. Find and Update
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!user) throw new ApiError("User not found", 404);
+
+  return { user: formatUser(user) };
+}
+
+module.exports = {
+  registerUser,
+  loginUser,
+  getUserById,
+  updateUser,
+};
