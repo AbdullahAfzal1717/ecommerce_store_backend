@@ -26,4 +26,10 @@ router.patch(
   asyncHandler(orderController.updateStatus)
 );
 
+router.get(
+  "/sales-stats",
+  protect,
+  asyncHandler(orderController.getAdminDashboardData)
+);
+
 module.exports = router;

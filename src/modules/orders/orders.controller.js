@@ -65,4 +65,19 @@ const updateStatus = async (req, res) => {
   }
 };
 
-module.exports = { placeOrder, getAllOrders, updateStatus, getMyOrders };
+const getAdminDashboardData = async (req, res) => {
+  try {
+    const data = await orderService.getDashboardAnalytics();
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ message: "Analytics Error", error: error.message });
+  }
+};
+
+module.exports = {
+  placeOrder,
+  getAllOrders,
+  updateStatus,
+  getMyOrders,
+  getAdminDashboardData,
+};
