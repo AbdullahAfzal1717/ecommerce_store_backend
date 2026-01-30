@@ -31,5 +31,10 @@ router.get(
   protect,
   asyncHandler(orderController.getAdminDashboardData)
 );
+router.get(
+  "/user-stats",
+  protect,
+  asyncHandler(orderController.getUserDashboardData)
+);
 
 module.exports = router;

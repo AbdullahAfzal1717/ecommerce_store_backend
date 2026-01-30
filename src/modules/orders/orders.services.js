@@ -91,6 +91,31 @@ const getDashboardAnalytics = async () => {
     revenue: item.revenue,
     orders: item.orders,
   }));
+  const reportStats = await Order.aggregate([
+    { $match: { orderStatus: { $ne: "Cancelled" } } },
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        // Count delivered orders as 'Completed'
+        completed: {
+          $sum: { $cond: [{ $eq: ["$orderStatus", "Delivered"] }, 1, 0] },
+        },
+        // Count Pending/Processing as 'Pending'
+        pending: {
+          $sum: {
+            $cond: [{ $in: ["$orderStatus", ["Pending", "Processing"]] }, 1, 0],
+          },
+        },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  const reportData = reportStats.map((item) => ({
+    label: monthNames[item._id - 1],
+    A: item.pending, // Matches dataKey="A" in the chart
+    B: item.completed, // Matches dataKey="B" in the chart
+  }));
 
   return {
     summary: {
@@ -100,6 +125,75 @@ const getDashboardAnalytics = async () => {
       deliveredOrders: delivered,
     },
     chartData: formattedChart,
+    reportData: reportData,
+  };
+};
+
+// backend/services/order.service.js
+const getUserDashboardData = async (userId) => {
+  // 1. Fetch Summary Stats (Basic Info)
+  const orders = await Order.find({ user: userId });
+
+  const totalSpent = orders
+    .filter((o) => o.orderStatus !== "Cancelled")
+    .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+  const activeOrders = orders.filter(
+    (o) => !["Delivered", "Cancelled"].includes(o.orderStatus)
+  ).length;
+
+  // 2. NEW: Calculate Spending Trend (For the Chart)
+  // We group orders by month and sum the totalAmount
+  const spendingStats = await Order.aggregate([
+    {
+      $match: {
+        user: userId,
+        orderStatus: { $ne: "Cancelled" },
+      },
+    },
+    {
+      $group: {
+        _id: { $month: "$createdAt" }, // Extract month (1-12)
+        amount: { $sum: "$totalAmount" },
+      },
+    },
+    { $sort: { _id: 1 } }, // Sort by month order
+  ]);
+
+  // Convert month numbers (1, 2, 3) to names (Jan, Feb, Mar)
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const spendingData = spendingStats.map((item) => ({
+    month: monthNames[item._id - 1],
+    amount: item.amount,
+  }));
+
+  // 3. Get recent activity (last 5 orders)
+  const recentOrders = await Order.find({ user: userId })
+    .sort({ createdAt: -1 })
+    .limit(5);
+
+  // Return everything in one object
+  return {
+    summary: {
+      totalOrders: orders.length,
+      activeOrders,
+      totalSpent: totalSpent.toFixed(2),
+    },
+    spendingData, // The frontend chart will now find this!
+    recentOrders,
   };
 };
 
@@ -109,4 +203,5 @@ module.exports = {
   updateOrderStatus,
   getOrdersByUserId,
   getDashboardAnalytics,
+  getUserDashboardData,
 };

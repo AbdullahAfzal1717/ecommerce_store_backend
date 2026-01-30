@@ -73,11 +73,21 @@ const getAdminDashboardData = async (req, res) => {
     res.status(500).json({ message: "Analytics Error", error: error.message });
   }
 };
-
+const getUserDashboardData = async (req, res) => {
+  const userId = req.user?._id;
+ 
+  try {
+    const data = await orderService.getUserDashboardData(userId);
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ message: "Analytics Error", error: error.message });
+  }
+};
 module.exports = {
   placeOrder,
   getAllOrders,
   updateStatus,
   getMyOrders,
   getAdminDashboardData,
+  getUserDashboardData,
 };
