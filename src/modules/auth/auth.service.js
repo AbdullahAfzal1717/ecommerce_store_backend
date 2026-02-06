@@ -14,6 +14,10 @@ function formatUser(user) {
     email: user.email,
     avatar: user.avatar,
     role: user.role,
+    accountStatus: user.accountStatus, // Added
+    referralCode: user.referralCode, // Added
+    walletBalance: user.walletBalance, // Added
+    availableSpins: user.availableSpins, // Added
   };
 }
 
@@ -24,29 +28,38 @@ function formatUser(user) {
  * @param {string} param0.email
  * @param {string} param0.password
  */
-async function registerUser({ username, email, password }, file) {
-  // basic input validation (controller/validator should normally handle this)
+async function registerUser({ username, email, password, referralCode }, file) {
   if (!username || !email || !password) {
     throw new ApiError("username, email and password are required", 400);
   }
 
-  // check existing user (by email or username)
   const existing = await User.findOne({ $or: [{ email }, { username }] });
   if (existing) {
     throw new ApiError("User already exists with this email or username", 400);
   }
 
+  // CHECK REFERRAL CODE
+  let referrerId = null;
+  if (referralCode) {
+    const referrer = await User.findOne({ referralCode });
+    if (referrer) {
+      referrerId = referrer._id;
+    }
+    // Note: We don't throw an error if code is invalid,
+    // we just proceed without a referrer (standard professional practice)
+  }
+
   const avatarPath = file ? file.path : "";
 
-  // create new user
   const user = await User.create({
     username,
     email,
     password,
     avatar: avatarPath,
+    referredBy: referrerId, // Link the user!
+    accountStatus: "red", // Default start
   });
 
-  // create JWT
   const token = generateToken(user._id);
 
   return {
@@ -54,7 +67,6 @@ async function registerUser({ username, email, password }, file) {
     token,
   };
 }
-
 /**
  * Login user by email or username
  * @param {Object} param0
@@ -70,7 +82,6 @@ async function loginUser({ login, password }) {
   const user = await User.findOne({
     $or: [{ email: login }, { username: login }],
   }).select("+password");
-
 
   if (!user) {
     throw new ApiError("Invalid credentials", 401);
