@@ -2,9 +2,9 @@
 const authService = require("./auth.service");
 
 const register = async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, referralCode } = req.body;
   const result = await authService.registerUser(
-    { username, email, password },
+    { username, email, password, referralCode },
     req.file
   );
 
