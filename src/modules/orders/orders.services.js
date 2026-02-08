@@ -1,5 +1,6 @@
 const Order = require("../../models/order.model");
 const Product = require("../../models/product.model"); // Adjust path based on your structure
+const User = require("../../models/user.model"); // Adjust path based on your structure
 
 const createNewOrder = async (orderData) => {
   // 1. Create the Order in MongoDB
@@ -201,6 +202,7 @@ const getReferralHistory = async (userId) => {
   const referrals = await User.find({ referredBy: userId })
     .select("username email accountStatus createdAt") // Only grab what we need
     .sort({ createdAt: -1 });
+  console.log(referrals);
 
   return referrals;
 };

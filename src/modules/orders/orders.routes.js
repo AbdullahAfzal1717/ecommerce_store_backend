@@ -36,5 +36,6 @@ router.get(
   protect,
   asyncHandler(orderController.getUserDashboardData)
 );
+router.get("/referrals", protect, asyncHandler(orderController.getReferrals));
 
 module.exports = router;
