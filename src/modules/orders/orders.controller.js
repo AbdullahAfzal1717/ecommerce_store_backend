@@ -75,9 +75,19 @@ const getAdminDashboardData = async (req, res) => {
 };
 const getUserDashboardData = async (req, res) => {
   const userId = req.user?._id;
- 
+
   try {
     const data = await orderService.getUserDashboardData(userId);
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ message: "Analytics Error", error: error.message });
+  }
+};
+const getReferrals = async (req, res) => {
+  const userId = req.user?._id;
+
+  try {
+    const data = await orderService.getReferralHistory(userId);
     res.status(200).json(data);
   } catch (error) {
     res.status(500).json({ message: "Analytics Error", error: error.message });
