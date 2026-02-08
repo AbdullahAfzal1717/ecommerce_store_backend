@@ -196,6 +196,14 @@ const getUserDashboardData = async (userId) => {
     recentOrders,
   };
 };
+const getReferralHistory = async (userId) => {
+  // We use the "index: true" we added to find users efficiently
+  const referrals = await User.find({ referredBy: userId })
+    .select("username email accountStatus createdAt") // Only grab what we need
+    .sort({ createdAt: -1 });
+
+  return referrals;
+};
 
 module.exports = {
   createNewOrder,
@@ -204,4 +212,5 @@ module.exports = {
   getOrdersByUserId,
   getDashboardAnalytics,
   getUserDashboardData,
+  getReferralHistory,
 };
