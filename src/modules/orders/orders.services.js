@@ -202,7 +202,6 @@ const getReferralHistory = async (userId) => {
   const referrals = await User.find({ referredBy: userId })
     .select("username email accountStatus createdAt") // Only grab what we need
     .sort({ createdAt: -1 });
-  console.log(referrals);
 
   return referrals;
 };

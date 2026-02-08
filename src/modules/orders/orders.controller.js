@@ -84,7 +84,6 @@ const getUserDashboardData = async (req, res) => {
   }
 };
 const getReferrals = async (req, res) => {
-  console.log(req.user);
   const userId = req.user?._id;
 
   try {

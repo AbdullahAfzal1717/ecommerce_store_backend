@@ -40,10 +40,8 @@ async function registerUser({ username, email, password, referralCode }, file) {
 
   // CHECK REFERRAL CODE
   let referrerId = null;
-  console.log(referralCode);
   if (referralCode) {
     const referrer = await User.findOne({ referralCode });
-    console.log(referrer);
     if (referrer) {
       referrerId = referrer._id;
     }
