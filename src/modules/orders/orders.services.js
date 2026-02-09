@@ -51,7 +51,6 @@ const updateOrderStatus = async (orderId, status) => {
         $inc: { quantity: item.quantity }, // Increment back
       });
     }
-    `Inventory restocked for Order ${orderId}`;
   }
 
   // Update status in DB
@@ -74,7 +73,6 @@ const updateOrderStatus = async (orderId, status) => {
 
         referrer.walletBalance += bonusAmount;
         await referrer.save();
-        `Referrer earned Rs. ${bonusAmount}`;
       }
     }
   }
