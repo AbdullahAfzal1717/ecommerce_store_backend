@@ -1,9 +1,22 @@
 const orderService = require("./orders.services");
+const User = require("../../models/user.model");
 
 const placeOrder = async (req, res) => {
   try {
-    // We attach the logged-in user's ID to the order
-    const orderData = { ...req.body, user: req.user._id };
+    const { walletAmountApplied, totalAmount } = req.body;
+
+    // Safety check: Does the user actually have this balance?
+    const user = await User.findById(req.user._id);
+    if (walletAmountApplied > user.walletBalance) {
+      return res.status(400).json({ message: "Insufficient wallet balance" });
+    }
+
+    const orderData = {
+      ...req.body,
+      user: req.user._id,
+      finalAmountPaid: totalAmount - walletAmountApplied,
+    };
+
     const order = await orderService.createNewOrder(orderData);
     res.status(201).json({ success: true, data: order });
   } catch (error) {

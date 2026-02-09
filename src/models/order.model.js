@@ -27,6 +27,9 @@ const orderSchema = new mongoose.Schema(
       enum: ["Processing", "Shipped", "Delivered", "Cancelled", "Pending"],
       default: "Processing",
     },
+    totalAmount: Number, // Original price of items
+    walletAmountApplied: { type: Number, default: 0 }, // Amount deducted from wallet
+    finalAmountPaid: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

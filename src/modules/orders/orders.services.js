@@ -3,18 +3,23 @@ const Product = require("../../models/product.model");
 const User = require("../../models/user.model");
 
 const createNewOrder = async (orderData) => {
+  // 1. Subtract wallet balance from user immediately if used
+  if (orderData.walletAmountApplied > 0) {
+    await User.findByIdAndUpdate(orderData.user, {
+      $inc: { walletBalance: -orderData.walletAmountApplied },
+    });
+  }
+
   const order = await Order.create(orderData);
 
-  // 1. Logic: Move User to YELLOW status on their first order
+  // Status logic for first order (RED to YELLOW)
   const user = await User.findById(orderData.user);
-  console.log(user);
   if (user && user.accountStatus === "red") {
     user.accountStatus = "yellow";
-    console.log(user);
     await user.save();
   }
 
-  // 2. Decrease stock
+  // Stock logic
   for (const item of orderData.items) {
     await Product.findByIdAndUpdate(item.productId, {
       $inc: { quantity: -item.quantity },
@@ -24,32 +29,47 @@ const createNewOrder = async (orderData) => {
 };
 
 const updateOrderStatus = async (orderId, status) => {
-  // Find order and populate user to check status
   const order = await Order.findById(orderId).populate("user");
   if (!order) throw new Error("Order not found");
+
+  // NEW: Handle Cancellation (Return money to wallet)
+  if (status === "Cancelled" && order.orderStatus !== "Cancelled") {
+    if (order.walletAmountApplied > 0) {
+      await User.findByIdAndUpdate(order.user._id, {
+        $inc: { walletBalance: order.walletAmountApplied },
+      });
+      console.log(
+        `Refunded ${order.walletAmountApplied} to ${order.user.username}`
+      );
+    }
+  }
 
   order.orderStatus = status;
   await order.save();
 
   const user = order.user;
 
-  // 3. Logic: Transition to GREEN & Pay Bonus
+  // Logic: Transition to GREEN & Dynamic Rewards
   if (status === "Delivered" && user && user.accountStatus !== "green") {
     user.accountStatus = "green";
+    user.availableSpins += 1;
     await user.save();
 
-    // If this user was referred by someone, pay that person
     if (user.referredBy) {
       const referrer = await User.findById(user.referredBy);
       if (referrer) {
-        const BONUS_AMOUNT = 50; // Customize your bonus amount here
-        referrer.walletBalance += BONUS_AMOUNT;
-        referrer.availableSpins += 1; // Reward for successful referral
+        // STEP 1: Admin-controlled percentage (e.g., 10%)
+        const BONUS_PERCENTAGE = 0.1;
+        const bonusAmount = order.totalAmount * BONUS_PERCENTAGE;
+
+        referrer.walletBalance += bonusAmount;
         await referrer.save();
+        console.log(
+          `Referrer earned Rs. ${bonusAmount} (10% of ${order.totalAmount})`
+        );
       }
     }
   }
-
   return order;
 };
 
