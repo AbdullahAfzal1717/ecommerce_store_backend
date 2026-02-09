@@ -1,40 +1,33 @@
 const orderService = require("./orders.services");
-const asyncHandler = require("../../utils/asyncHandler"); // Using your existing utility
 
-const placeOrder = asyncHandler(async (req, res) => {
-  const order = await orderService.createNewOrder(req.body);
-  res.status(201).json({
-    success: true,
-    message: "Order placed successfully",
-    data: order,
-  });
-});
+const placeOrder = async (req, res) => {
+  try {
+    // We attach the logged-in user's ID to the order
+    const orderData = { ...req.body, user: req.user._id };
+    const order = await orderService.createNewOrder(orderData);
+    res.status(201).json({ success: true, data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const changeStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+    const order = await orderService.updateOrderStatus(orderId, status);
+    res.json({ success: true, data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 const getMyOrders = async (req, res) => {
   try {
-    // 1. Get User ID from the authentication middleware
-    const userId = req.user?._id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: User ID not found in request",
-      });
-    }
-
-    // 2. Call the service layer
-    const orders = await orderService.getOrdersByUserId(userId);
-
-    // 3. Send success response
-    return res.status(200).json({
-      success: true,
-      data: orders,
-    });
+    const orders = await orderService.getOrdersByUserId(req.user._id);
+    res.json({ success: true, data: orders });
   } catch (error) {
-    // 4. Handle errors
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 const getAllOrders = async (req, res) => {
@@ -101,4 +94,5 @@ module.exports = {
   getAdminDashboardData,
   getUserDashboardData,
   getReferrals,
+  changeStatus,
 };

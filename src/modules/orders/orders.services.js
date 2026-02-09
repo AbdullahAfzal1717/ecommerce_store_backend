@@ -1,16 +1,53 @@
 const Order = require("../../models/order.model");
-const Product = require("../../models/product.model"); // Adjust path based on your structure
-const User = require("../../models/user.model"); // Adjust path based on your structure
+const Product = require("../../models/product.model");
+const User = require("../../models/user.model");
 
 const createNewOrder = async (orderData) => {
-  // 1. Create the Order in MongoDB
   const order = await Order.create(orderData);
 
-  // 2. Loop through items and decrease stock (Professional Touch)
+  // 1. Logic: Move User to YELLOW status on their first order
+  const user = await User.findById(orderData.user);
+  console.log(user);
+  if (user && user.accountStatus === "red") {
+    user.accountStatus = "yellow";
+    console.log(user);
+    await user.save();
+  }
+
+  // 2. Decrease stock
   for (const item of orderData.items) {
     await Product.findByIdAndUpdate(item.productId, {
-      $inc: { quantity: -item.quantity }, // Subtract bought quantity from stock
+      $inc: { quantity: -item.quantity },
     });
+  }
+  return order;
+};
+
+const updateOrderStatus = async (orderId, status) => {
+  // Find order and populate user to check status
+  const order = await Order.findById(orderId).populate("user");
+  if (!order) throw new Error("Order not found");
+
+  order.orderStatus = status;
+  await order.save();
+
+  const user = order.user;
+
+  // 3. Logic: Transition to GREEN & Pay Bonus
+  if (status === "Delivered" && user && user.accountStatus !== "green") {
+    user.accountStatus = "green";
+    await user.save();
+
+    // If this user was referred by someone, pay that person
+    if (user.referredBy) {
+      const referrer = await User.findById(user.referredBy);
+      if (referrer) {
+        const BONUS_AMOUNT = 50; // Customize your bonus amount here
+        referrer.walletBalance += BONUS_AMOUNT;
+        referrer.availableSpins += 1; // Reward for successful referral
+        await referrer.save();
+      }
+    }
   }
 
   return order;
@@ -30,16 +67,16 @@ const fetchAllOrders = async () => {
   return await Order.find().sort({ createdAt: -1 });
 };
 
-const updateOrderStatus = async (orderId, status) => {
-  const order = await Order.findByIdAndUpdate(
-    orderId,
-    { $set: { orderStatus: status } },
-    { new: true } // Returns the updated document
-  );
+// const updateOrderStatus = async (orderId, status) => {
+//   const order = await Order.findByIdAndUpdate(
+//     orderId,
+//     { $set: { orderStatus: status } },
+//     { new: true } // Returns the updated document
+//   );
 
-  if (!order) throw new Error("Order not found");
-  return order;
-};
+//   if (!order) throw new Error("Order not found");
+//   return order;
+// };
 
 const getDashboardAnalytics = async () => {
   // 1. Fetch all non-cancelled orders for calculations
