@@ -29,27 +29,38 @@ const createNewOrder = async (orderData) => {
 };
 
 const updateOrderStatus = async (orderId, status) => {
+  // 1. Find order and populate user + items
   const order = await Order.findById(orderId).populate("user");
   if (!order) throw new Error("Order not found");
 
-  // NEW: Handle Cancellation (Return money to wallet)
-  if (status === "Cancelled" && order.orderStatus !== "Cancelled") {
-    if (order.walletAmountApplied > 0) {
+  // Prevent any logic if the order is already in the requested status
+  if (order.orderStatus === status) return order;
+
+  // --- CANCELLATION LOGIC ---
+  if (status === "Cancelled") {
+    // A. Return Wallet Balance (Only if not already cancelled)
+    if (order.orderStatus !== "Cancelled" && order.walletAmountApplied > 0) {
       await User.findByIdAndUpdate(order.user._id, {
         $inc: { walletBalance: order.walletAmountApplied },
       });
-      console.log(
-        `Refunded ${order.walletAmountApplied} to ${order.user.username}`
-      );
     }
+
+    // B. Return Stock Quantity to Products
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.productId, {
+        $inc: { quantity: item.quantity }, // Increment back
+      });
+    }
+    `Inventory restocked for Order ${orderId}`;
   }
 
+  // Update status in DB
   order.orderStatus = status;
   await order.save();
 
   const user = order.user;
 
-  // Logic: Transition to GREEN & Dynamic Rewards
+  // --- DELIVERY / REWARD LOGIC ---
   if (status === "Delivered" && user && user.accountStatus !== "green") {
     user.accountStatus = "green";
     user.availableSpins += 1;
@@ -58,21 +69,18 @@ const updateOrderStatus = async (orderId, status) => {
     if (user.referredBy) {
       const referrer = await User.findById(user.referredBy);
       if (referrer) {
-        // STEP 1: Admin-controlled percentage (e.g., 10%)
         const BONUS_PERCENTAGE = 0.1;
         const bonusAmount = order.totalAmount * BONUS_PERCENTAGE;
 
         referrer.walletBalance += bonusAmount;
         await referrer.save();
-        console.log(
-          `Referrer earned Rs. ${bonusAmount} (10% of ${order.totalAmount})`
-        );
+        `Referrer earned Rs. ${bonusAmount}`;
       }
     }
   }
+
   return order;
 };
-
 const getOrdersByUserId = async (userId) => {
   try {
     // We sort by createdAt: -1 so the user sees their newest orders first
