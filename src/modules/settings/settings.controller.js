@@ -1,4 +1,4 @@
-const settingsService = require("./settings.service");
+const settingsService = require("./settings.services");
 const { validationResult } = require("express-validator");
 
 const fetchSettings = async (req, res) => {

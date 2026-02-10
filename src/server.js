@@ -17,6 +17,7 @@ const categoryRouter = require("./modules/categories");
 const subcategoryRouter = require("./modules/subcategories");
 const productRouter = require("./modules/products");
 const paymentRouter = require("./modules/payments");
+const settingRouter = require("./modules/settings/settings.routes");
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use("/api/v1/subcategories", subcategoryRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/orders", orderRoutes);
+app.use("/api/v1/settings", settingRouter);
 
 app.get("/api/health", (_, res) =>
   res.json({ status: "OK", message: "Server running" })

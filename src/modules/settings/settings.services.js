@@ -1,4 +1,4 @@
-const Settings = require("../../models/settings.model");
+const Settings = require("../../models/setting.model");
 
 const getGlobalSettings = async () => {
   let settings = await Settings.findOne({ key: "global_config" });
