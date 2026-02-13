@@ -18,6 +18,7 @@ const subcategoryRouter = require("./modules/subcategories");
 const productRouter = require("./modules/products");
 const paymentRouter = require("./modules/payments");
 const settingRouter = require("./modules/settings/settings.routes");
+const spinRouter = require("./modules/luckySpin/spin.routes");
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use("/api/v1/products", productRouter);
 app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/settings", settingRouter);
+app.use("/api/v1/spins", spinRouter);
 
 app.get("/api/health", (_, res) =>
   res.json({ status: "OK", message: "Server running" })

@@ -1,5 +1,5 @@
 const User = require("../../models/user.model");
-const Settings = require("../../models/settings.model");
+const Settings = require("../../models/setting.model");
 
 const executeSpin = async (userId) => {
   const user = await User.findById(userId);
