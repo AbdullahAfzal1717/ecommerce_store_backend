@@ -1,5 +1,6 @@
 const Order = require("../../models/order.model");
 const Product = require("../../models/product.model");
+const Settings = require("../../models/setting.model");
 const User = require("../../models/user.model");
 
 const createNewOrder = async (orderData) => {
@@ -29,50 +30,79 @@ const createNewOrder = async (orderData) => {
 };
 
 const updateOrderStatus = async (orderId, status) => {
-  // 1. Find order and populate user + items
+  // 1. Find order and populate user to access accountStatus and referredBy
   const order = await Order.findById(orderId).populate("user");
   if (!order) throw new Error("Order not found");
 
-  // Prevent any logic if the order is already in the requested status
+  // Prevent redundant processing if status is already the same
   if (order.orderStatus === status) return order;
 
-  // --- CANCELLATION LOGIC ---
+  // --- LOGIC A: CANCELLATION (Inventory & Wallet Recovery) ---
   if (status === "Cancelled") {
-    // A. Return Wallet Balance (Only if not already cancelled)
+    // Refund wallet amount if any was used
     if (order.orderStatus !== "Cancelled" && order.walletAmountApplied > 0) {
       await User.findByIdAndUpdate(order.user._id, {
         $inc: { walletBalance: order.walletAmountApplied },
       });
     }
 
-    // B. Return Stock Quantity to Products
+    // Return items to stock
     for (const item of order.items) {
       await Product.findByIdAndUpdate(item.productId, {
-        $inc: { quantity: item.quantity }, // Increment back
+        $inc: { quantity: item.quantity },
       });
     }
   }
 
-  // Update status in DB
+  // --- LOGIC B: PERSIST STATUS CHANGE ---
   order.orderStatus = status;
   await order.save();
 
   const user = order.user;
 
-  // --- DELIVERY / REWARD LOGIC ---
-  if (status === "Delivered" && user && user.accountStatus !== "green") {
-    user.accountStatus = "green";
-    user.availableSpins += 1;
+  // --- LOGIC C: DELIVERY, MILESTONES & REFERRALS ---
+  if (status === "Delivered" && user) {
+    // 1. Fetch Global Config from Settings Model
+    const globalConfig = await Settings.findOne({ key: "global_config" });
+
+    // Fallbacks if admin hasn't configured settings yet
+    const IS_REFERRAL_ON = globalConfig
+      ? globalConfig.referralBonusEnabled
+      : false;
+    const BONUS_PERCENT = globalConfig
+      ? globalConfig.cashbackPercentage / 100
+      : 0.1;
+
+    // 2. Account Promotion & Lucky Spin (Milestone Logic)
+    // User only gets 1 spin and "Green" status if they aren't already Green.
+    if (user.accountStatus !== "green") {
+      user.accountStatus = "green";
+      user.availableSpins += 1;
+      console.log("First time Green: Reward added.");
+    }
+    // 2. OPTIONAL: If they are ALREADY Green, give them a spin only for big orders (e.g., > Rs. 1000)
+    else if (order.totalAmount >= 1000) {
+      user.availableSpins += 1;
+      console.log("Loyal Green User: Bonus spin added for large order.");
+    }
+
     await user.save();
 
-    if (user.referredBy) {
+    // 3. Referral Bonus Logic
+    if (IS_REFERRAL_ON && user.referredBy) {
       const referrer = await User.findById(user.referredBy);
-      if (referrer) {
-        const BONUS_PERCENTAGE = 0.1;
-        const bonusAmount = order.totalAmount * BONUS_PERCENTAGE;
+      console.log(referrer);
 
-        referrer.walletBalance += bonusAmount;
-        await referrer.save();
+      if (referrer) {
+        const bonusAmount = order.totalAmount * BONUS_PERCENT;
+        console.log(bonusAmount);
+
+        // Update referrer's wallet
+        await User.findByIdAndUpdate(referrer._id, {
+          $inc: { walletBalance: bonusAmount },
+        });
+
+        // Optional: You could log this transaction in a 'WalletHistory' model here
       }
     }
   }
