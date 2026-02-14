@@ -17,7 +17,7 @@ const executeSpin = async (userId) => {
     { label: "Rs. 20", value: 20, weight: 30 },
     { label: "Better Luck", value: 0, weight: 20 },
     { label: "Rs. 50", value: 50, weight: 9 },
-    { label: "JACKPOT Rs. 500", value: 500, weight: 1 }, // Only 1% normally
+    { label: "Rs. 500", value: 500, weight: 1 }, // Only 1% normally
   ];
 
   // 3. Adjust Weight if Win Mode is ON
