@@ -91,11 +91,9 @@ const updateOrderStatus = async (orderId, status) => {
     // 3. Referral Bonus Logic
     if (IS_REFERRAL_ON && user.referredBy) {
       const referrer = await User.findById(user.referredBy);
-      console.log(referrer);
 
       if (referrer) {
         const bonusAmount = order.totalAmount * BONUS_PERCENT;
-        console.log(bonusAmount);
 
         // Update referrer's wallet
         await User.findByIdAndUpdate(referrer._id, {

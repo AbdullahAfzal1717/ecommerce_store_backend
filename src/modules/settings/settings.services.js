@@ -2,7 +2,6 @@ const Settings = require("../../models/setting.model");
 
 const getGlobalSettings = async () => {
   let settings = await Settings.findOne({ key: "global_config" });
-  console.log("settings", settings);
   if (!settings) {
     // Create default settings if they don't exist
     settings = await Settings.create({ key: "global_config" });
