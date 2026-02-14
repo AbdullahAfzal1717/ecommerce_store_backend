@@ -7,7 +7,7 @@ const {
   updateMe,
   getTree,
 } = require("./auth.controller");
-const { protect } = require("../../middlewares/auth.middleware");
+const { protect, restrictTo } = require("../../middlewares/auth.middleware");
 const validate = require("../../middlewares/validate.middleware");
 const {
   registerValidator,
@@ -36,6 +36,13 @@ router.put(
   asyncHandler(updateMe)
 );
 router.get("/referral-tree", protect, treeValidator, asyncHandler(getTree));
+router.get(
+  "/tree/:userId",
+  protect,
+  restrictTo("admin"),
+  treeValidator,
+  asyncHandler(getTree)
+);
 
 module.exports = router;
 populate;
