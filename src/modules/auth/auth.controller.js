@@ -56,6 +56,14 @@ const getTree = async (req, res) => {
   });
 };
 
+const getAllUsers = async (req, res) => {
+  const users = await authService.getAllUsers();
 
+  return res.json({
+    success: true,
+    message: "All users fetched successfully",
+    data: users,
+  });
+};
 
-module.exports = { register, login, getMe, updateMe, getTree };
+module.exports = { register, login, getMe, updateMe, getTree, getAllUsers };

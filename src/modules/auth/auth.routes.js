@@ -6,6 +6,7 @@ const {
   getMe,
   updateMe,
   getTree,
+  getAllUsers,
 } = require("./auth.controller");
 const { protect, restrictTo } = require("../../middlewares/auth.middleware");
 const validate = require("../../middlewares/validate.middleware");
@@ -43,6 +44,11 @@ router.get(
   treeValidator,
   asyncHandler(getTree)
 );
-
+router.get(
+  "/all-users",
+  protect,
+  restrictTo("admin"),
+  asyncHandler(getAllUsers)
+);
 module.exports = router;
 populate;

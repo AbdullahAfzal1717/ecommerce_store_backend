@@ -168,6 +168,11 @@ async function getReferralTreeData(userId) {
     children: children.filter((c) => c !== null),
   };
 }
+async function getAllUsers() {
+  const users = await User.find({}).sort({ createdAt: -1 });
+  // Map through users to format them using your existing formatUser helper
+  return users.map((user) => formatUser(user));
+}
 
 module.exports = {
   registerUser,
@@ -175,4 +180,5 @@ module.exports = {
   getUserById,
   updateUser,
   getReferralTreeData,
+  getAllUsers,
 };
