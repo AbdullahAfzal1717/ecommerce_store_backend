@@ -1,5 +1,5 @@
 // src/modules/auth/auth.validator.js
-const { body } = require("express-validator");
+const { body, param } = require("express-validator");
 
 const registerValidator = [
   body("username")
@@ -24,8 +24,11 @@ const loginValidator = [
   body("login").notEmpty().withMessage("Email or username required"),
   body("password").notEmpty().withMessage("Password required"),
 ];
-
+const treeValidator = [
+  param("userId").optional().isMongoId().withMessage("Invalid User ID format"),
+];
 module.exports = {
   registerValidator,
   loginValidator,
+  treeValidator,
 };

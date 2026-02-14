@@ -43,6 +43,19 @@ const updateMe = async (req, res) => {
     data: { user: result.user },
   });
 };
+const getTree = async (req, res) => {
+  // Admin can pass a userId in params, otherwise it uses the logged-in user
+  const targetId = req.params.userId || req.user._id;
 
-// Update your module.exports
-module.exports = { register, login, getMe, updateMe };
+  const tree = await authService.getReferralTreeData(targetId);
+
+  return res.json({
+    success: true,
+    message: "Referral tree fetched successfully",
+    data: tree,
+  });
+};
+
+
+
+module.exports = { register, login, getMe, updateMe, getTree };
