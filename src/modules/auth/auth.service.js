@@ -145,17 +145,14 @@ async function updateUser(userId, updateData, file) {
   return { user: formatUser(user) };
 }
 /**
- * Recursive helper to build referral tree
  * @param {string} userId
  */
 async function getReferralTreeData(userId) {
   const user = await User.findById(userId);
   if (!user) return null;
 
-  // Find direct referrals
   const referrals = await User.find({ referredBy: userId });
 
-  // Map and recurse
   const children = await Promise.all(
     referrals.map(async (ref) => await getReferralTreeData(ref._id))
   );
@@ -171,7 +168,6 @@ async function getReferralTreeData(userId) {
     children: children.filter((c) => c !== null),
   };
 }
-
 
 module.exports = {
   registerUser,
