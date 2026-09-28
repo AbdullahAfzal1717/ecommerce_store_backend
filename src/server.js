@@ -27,7 +27,15 @@ connectDB();
 
 // Middlewares
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:3000", "https://ecommerce-store-nu-bay.vercel.app"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.options("*", cors());
 app.use(express.json()); //
 // Rate limiter (example)
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
@@ -58,5 +66,5 @@ app.use("*", (_, res) =>
 // Error handler (last)
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
