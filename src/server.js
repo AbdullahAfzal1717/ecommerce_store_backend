@@ -1,7 +1,4 @@
-const NODE_ENV = process.env.NODE_ENV || "development";
-if (NODE_ENV === "development") {
-  require("dotenv").config();
-}
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -21,9 +18,6 @@ const settingRouter = require("./modules/settings/settings.routes");
 const spinRouter = require("./modules/luckySpin/spin.routes");
 
 const app = express();
-
-// Connect DB
-connectDB();
 
 // Middlewares
 app.use(helmet());
@@ -67,4 +61,14 @@ app.use("*", (_, res) =>
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
+if (require.main === module) {
+  connectDB()
+    .then(() => app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`)))
+    .catch((error) => {
+      console.error("Unable to start server:", error.message);
+      process.exitCode = 1;
+    });
+}
+
+module.exports = app;
